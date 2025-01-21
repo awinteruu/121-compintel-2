@@ -1,0 +1,5 @@
+/home/winter/Uni/LJ1/Blok2/Info/CompI/sudoku/solver2-1/bin/Release/net8.0/publish/solver2-1
+/home/winter/Uni/LJ1/Blok2/Info/CompI/sudoku/solver2-1/bin/Release/net8.0/publish/solver2-1.dll
+/home/winter/Uni/LJ1/Blok2/Info/CompI/sudoku/solver2-1/bin/Release/net8.0/publish/solver2-1.deps.json
+/home/winter/Uni/LJ1/Blok2/Info/CompI/sudoku/solver2-1/bin/Release/net8.0/publish/solver2-1.runtimeconfig.json
+/home/winter/Uni/LJ1/Blok2/Info/CompI/sudoku/solver2-1/bin/Release/net8.0/publish/solver2-1.pdb

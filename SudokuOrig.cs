@@ -170,33 +170,49 @@ struct SudokuOrig
 
     static (bool, uint[]?) SolveChronologicalBacktracking(uint[] input, int position = 0)
     {
-        if (position == 81)
-            return (true, input);
+	    if (position == 81)
+		    return (true, input);
 
-        int i = position / 9;
-        int j = position % 9;
-        if (Popcnt.PopCount(input[position]) == 1)
-            return SolveChronologicalBacktracking(input, position + 1);
+	    int i = position / 9;
+	    int j = position % 9;
+	    if (Popcnt.PopCount(input[position]) == 1)
+		    return SolveChronologicalBacktracking(input, position + 1);
 
-        for (int digit = 0; digit < 9; digit++)
-        {
-            uint digitBit = 1u << digit;
-            if ((input[position] & digitBit) == 0)
-                continue;
+	    for (int digit = 0; digit < 9; digit++)
+	    {
+		    uint digitBit = 1u << digit;
+		    if ((input[position] & digitBit) == 0)
+			    continue;
 
-            uint[] copy = new uint[81];
-            for (int idx = 0; idx < 81; idx++)
-                copy[idx] = input[idx];
+		    uint[] copy = new uint[81];
+		    for (int idx = 0; idx < 81; idx++)
+			    copy[idx] = input[idx];
 
-            copy[position] = digitBit;
+		    bool isPossible = true;
+		    for (int idx = 0; idx < 9; idx++)
+		    {
+			    int boxI = idx / 3 + (i / 3) * 3;
+			    int boxJ = idx % 3 + (j / 3) * 3;
+			    if (copy[idx * 9 + j] == digitBit || copy[i * 9 + idx] == digitBit || copy[boxI * 9 + boxJ] == digitBit)
+			    {
+				    isPossible = false;
+				    break;
+			    }
+		    }
 
-            var (success, sudoku) = SolveForwardChecking(copy, position + 1);
-            if (success)
-                return (true, sudoku);
-        }
+		    if (!isPossible)
+			    continue;
 
-        return (false, null);
+		    copy[position] = digitBit;
+
+		    var (success, sudoku) = SolveChronologicalBacktracking(copy, position + 1);
+		    if (success)
+			    return (true, sudoku);
+	    }
+
+	    return (false, null);
     }
+
 
     public override string ToString()
     {

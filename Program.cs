@@ -38,7 +38,11 @@ class Program()
         }
 
         //Solve(ReadFile("puzzels/Sudoku_puzzels_5.txt", out _)[0]);
-        //BenchmarkTime(ReadFile("puzzels/Sudoku_puzzels_5.txt", out _), 50000);
+        //BenchmarkTime(ReadFile("puzzels/Sudoku_puzzels_5.txt", out _), 60000);
+	//for (int i = 1; i < 6; i++){
+        //	BenchmarkTime(ReadFile($"puzzels/{i}.txt", out _), 40000);
+	//	Console.WriteLine("");
+	//}
         //worse version:
         //forward checking:             1662220+-74445ns
         //mcv:                          631828+-63810ns
@@ -75,7 +79,7 @@ class Program()
     /// <param name="sudokuList"></param>
     static void BenchmarkTime(List<Sudoku> sudokuList, int maxIterations)
     {
-        int batchSize = 20000;
+        int batchSize = 200;
         int batchCount = maxIterations / batchSize;
 
         Stopwatch stopwatch = new Stopwatch();

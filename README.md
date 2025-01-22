@@ -1,5 +1,8 @@
 # How to compile and run
 
+## Without an IDE
+Make sure you have the dotnet runtime installed.
+
 ```shell
 dotnet run
 ```
@@ -7,5 +10,7 @@ dotnet run
 If you're benchmarking times, you'll want to use a release version:
 
 ```shell
-dotnet publish; cd bin/Release/; ./solver2-1
+dotnet publish; cd bin/Release/net*; ./solver2-1
 ```
+## With an IDE
+Import the project and run it.

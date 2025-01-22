@@ -13,31 +13,31 @@ class Program()
         Console.WriteLine("Input the location of a text file containing some sudokus (relative to the executable path), or input a puzzle description directly " +
             "(consisting of digits, with or without spaces and with dots or zeros to represent unknown cells)");
 
-        //while (true)
-        //{
-        //    string input = Console.ReadLine()!;
-        //    if (input == "exit")
-        //        break;
+        while (true)
+        {
+            string input = Console.ReadLine()!;
+            if (input == "exit")
+                break;
 
-        //    var puzzles = ReadFile(input, out bool success);
-        //    if (success)
-        //    {
-        //        foreach (Sudoku sudoku in puzzles)
-        //            Solve(sudoku);
-        //    }
-        //    else
-        //    {
-        //        string defaultFormat = ParseFormat(input);
-        //        if (defaultFormat == "")
-        //        {
-        //            Console.WriteLine($"Incorrect sudoku format or invalid file location");
-        //            continue;
-        //        }
-        //        Solve(new Sudoku(defaultFormat));
-        //    }
-        //}
+            var puzzles = ReadFile(input, out bool success);
+            if (success)
+            {
+                foreach (Sudoku sudoku in puzzles)
+                    Solve(sudoku);
+            }
+            else
+            {
+                string defaultFormat = ParseFormat(input);
+                if (defaultFormat == "")
+                {
+                    Console.WriteLine($"Incorrect sudoku format or invalid file location");
+                    continue;
+                }
+                Solve(new Sudoku(defaultFormat));
+            }
+        }
 
-        Solve(ReadFile("puzzels/Sudoku_puzzels_5.txt", out _)[0]);
+        //Solve(ReadFile("puzzels/Sudoku_puzzels_5.txt", out _)[0]);
         //BenchmarkTime(ReadFile("puzzels/Sudoku_puzzels_5.txt", out _), 50000);
         //worse version:
         //forward checking:             1662220+-74445ns

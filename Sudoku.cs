@@ -9,10 +9,16 @@ using System.Threading.Tasks;
 
 struct Sudoku
 {
+    // All the digits in the sudoku, if no digit is present in a square yet, the value is -1
     int[] digits = new int[81];
+
+    // In each row, column and box a digit may appear or not, which is represented by 27 9-bit bitmasks
+    // for all 9 + 9 + 9 rows, columns and boxes
     uint[] rowFrequencies = new uint[9];
     uint[] colFrequencies = new uint[9];
     uint[] boxFrequencies = new uint[9];
+
+    // Stores whether a digit is fixed (already given)
     bool[,] isFixed = new bool[9, 9];
 
     public Sudoku(string line)
@@ -39,6 +45,9 @@ struct Sudoku
         }
     }
 
+    /// <summary>
+    /// Clears the sudoku except for all fixed digits
+    /// </summary>
     public void Clear()
     {
         for (int i = 0; i < 9; i++)
@@ -60,11 +69,26 @@ struct Sudoku
         }
     }
 
+    /// <summary>
+    /// Helper function to convert a coordinate into an indexing of the 9 boxes
+    /// </summary>
+    /// <param name="i"></param>
+    /// <param name="j"></param>
+    /// <returns></returns>
     int coordinateToBoxIndex(int i, int j)
     {
         return (i / 3) * 3 + (j / 3);
     }
 
+    /// <summary>
+    /// Fills in a digit at row i and column j
+    /// returns true when this is possible and the digit doesn't yet appear in the relevant rows, columns or boxes,
+    /// otherwise it doesn't do anything and returns false
+    /// </summary>
+    /// <param name="i"></param>
+    /// <param name="j"></param>
+    /// <param name="digit"></param>
+    /// <returns></returns>
     bool fillDigit(int i, int j, int digit)
     {
         uint digitBin = 1u << digit;
@@ -80,6 +104,13 @@ struct Sudoku
         return true;
     }
 
+    /// <summary>
+    /// Returns whether it would be possible to fill in *any* digit into the square at row i and column j
+    /// without violating the sudoku constraints
+    /// </summary>
+    /// <param name="i"></param>
+    /// <param name="j"></param>
+    /// <returns></returns>
     bool hasPossibilities(int i, int j)
     {
         int boxIndex = coordinateToBoxIndex(i, j);
@@ -88,6 +119,13 @@ struct Sudoku
         return impossible != 0b111111111 || digits[i * 9 + j] >= 0;
     }
 
+    /// <summary>
+    /// Counts the number of digits that would be possible to place in row i and column j, according to the
+    /// current state of the sudoku (i.e. not directly violating any sudoku constraints)
+    /// </summary>
+    /// <param name="i"></param>
+    /// <param name="j"></param>
+    /// <returns></returns>
     int possibilityCount(int i, int j)
     {
         int boxIndex = coordinateToBoxIndex(i, j);
@@ -96,6 +134,14 @@ struct Sudoku
         return (int)(9 - Popcnt.PopCount(impossible));
     }
 
+    /// <summary>
+    /// Returns whether it would be possible to fill in *any* digit into the square at row i and column j
+    /// without violating the sudoku constraints nor inducing an empty domain in some other square
+    /// </summary>
+    /// <param name="i"></param>
+    /// <param name="j"></param>
+    /// <param name="digit"></param>
+    /// <returns></returns>
     bool fillDigitForwardChecking(int i, int j, int digit)
     {
         uint digitBin = 1u << digit;
@@ -126,6 +172,11 @@ struct Sudoku
         return true;
     }
 
+    /// <summary>
+    /// Removes the digit at row i and column j to make that square empty
+    /// </summary>
+    /// <param name="i"></param>
+    /// <param name="j"></param>
     void clearDigit(int i, int j)
     {
         int boxIndex = coordinateToBoxIndex(i, j);
@@ -139,13 +190,29 @@ struct Sudoku
         boxFrequencies[boxIndex] ^= digitBin;
     }
 
-    public bool Solve()
+    /// <summary>
+    /// Solves the sudoku
+    /// </summary>
+    /// <returns></returns>
+    public bool Solve(SolveType solveType)
     {
-        return SolveForwardCheckingMCV();
+        if (solveType == SolveType.ChronologicalBacktracking)
+            return SolveChronologicalBacktracking();
+        else if (solveType == SolveType.ForwardChecking)
+            return SolveForwardChecking();
+        else if (solveType == SolveType.MCV)
+            return SolveMCV();
+
+        return false;
     }
 
-    public bool SolveForwardCheckingMCV()
+    /// <summary>
+    /// Solves the sudoku with forward checking and a most constrained variable heuristic
+    /// </summary>
+    /// <returns></returns>
+    bool SolveMCV()
     {
+        // First the algorithm makes a list of the empty squares
         List<(int, int)> empty = [];
         for (int i = 0; i < 9; i++)
         {
@@ -156,14 +223,17 @@ struct Sudoku
             }
         }
 
+        // Instead of using recursion to solve the sudoku, everything is done iteratively for performance
+        // and the stacks that would normally be made by the compiler are now defined explicitly
         int[] guesses = new int[empty.Count];
         int[] guessPositionIndices = new int[empty.Count];
         int guessIdx = 0;
         while (guessIdx < empty.Count)
         {
-            if (guessIdx < 0)
+            if (guessIdx < 0) // If guessIdx is less than 0, the search is done and no solution has been found
                 return false;
 
+            // Find the square with the least possibilities (MCV)
             int bestPositionIndex = -1;
             int bestPossibleCount = 10;
             for (int idx = 0; idx < empty.Count; idx++)
@@ -171,7 +241,7 @@ struct Sudoku
                 var (i, j) = empty[idx];
                 if (digits[i * 9 + j] >= 0)
                     continue;
-                
+
                 int possibleCount = possibilityCount(i, j);
                 if (possibleCount < bestPossibleCount)
                 {
@@ -183,12 +253,14 @@ struct Sudoku
                     break;
             }
 
+            // Try a digit as indicated by guesses[guessIdx], increase it afterwards in case of no success
+            // if it is 9, it means that all possibilities have been tried and the algorithm needs to backtrack.
             guessPositionIndices[guessIdx] = bestPositionIndex;
             while (guesses[guessIdx] < 9)
             {
                 var (i, j) = empty[guessPositionIndices[guessIdx]];
                 int nextGuess = guesses[guessIdx];
-                if (fillDigitForwardChecking(i, j, nextGuess))
+                if (fillDigitForwardChecking(i, j, nextGuess)) // Forward checking is used
                 {
                     guessIdx++;
                     break;
@@ -197,9 +269,11 @@ struct Sudoku
                 guesses[guessIdx]++;
             }
 
+            // If all empty squares have been filled in correctly, the algorithm terminates
             if (guessIdx >= empty.Count)
                 return true;
 
+            // guesses[guessIdx] is 9 and the algorithm needs to backtrack
             if (guesses[guessIdx] >= 9)
             {
                 guesses[guessIdx] = 0;
@@ -215,8 +289,9 @@ struct Sudoku
         return true;
     }
 
-    public bool SolveForwardChecking()
+    bool SolveForwardChecking()
     {
+        // First the algorithm makes a list of the empty squares
         List<(int, int)> empty = [];
         for (int i = 0; i < 9; i++)
         {
@@ -227,18 +302,22 @@ struct Sudoku
             }
         }
 
+        // Instead of using recursion to solve the sudoku, everything is done iteratively for performance
+        // and the stacks that would normally be made by the compiler are now defined explicitly
         int[] guesses = new int[empty.Count];
         int guessIdx = 0;
         while (guessIdx < empty.Count)
         {
-            if (guessIdx < 0)
+            if (guessIdx < 0) // If guessIdx is less than 0, the search is done and no solution has been found
                 return false;
 
+            // Try a digit as indicated by guesses[guessIdx], increase it afterwards in case of no success
+            // if it is 9, it means that all possibilities have been tried and the algorithm needs to backtrack.
             while (guesses[guessIdx] < 9)
             {
                 var (i, j) = empty[guessIdx];
                 int nextGuess = guesses[guessIdx];
-                if (fillDigitForwardChecking(i, j, nextGuess))
+                if (fillDigitForwardChecking(i, j, nextGuess)) // Forward checking is used
                 {
                     guessIdx++;
                     break;
@@ -247,9 +326,11 @@ struct Sudoku
                 guesses[guessIdx]++;
             }
 
+            // If all empty squares have been filled in correctly, the algorithm terminates
             if (guessIdx >= empty.Count)
                 return true;
 
+            // guesses[guessIdx] is 9 and the algorithm needs to backtrack
             if (guesses[guessIdx] >= 9)
             {
                 guesses[guessIdx] = 0;
@@ -265,8 +346,9 @@ struct Sudoku
         return true;
     }
 
-    public bool SolveChronologicalBacktracking()
+    bool SolveChronologicalBacktracking()
     {
+        // First the algorithm makes a list of the empty squares
         List<(int, int)> empty = [];
         for (int i = 0; i < 9; i++)
         {
@@ -277,6 +359,8 @@ struct Sudoku
             }
         }
 
+        // Instead of using recursion to solve the sudoku, everything is done iteratively for performance
+        // and the stacks that would normally be made by the compiler are now defined explicitly
         int[] guesses = new int[empty.Count];
         int guessIdx = 0;
         while (guessIdx < empty.Count)
@@ -288,7 +372,7 @@ struct Sudoku
             {
                 var (i, j) = empty[guessIdx];
                 int nextGuess = guesses[guessIdx];
-                if (fillDigit(i, j, nextGuess))
+                if (fillDigit(i, j, nextGuess)) // No forward checking is used
                 {
                     guessIdx++;
                     break;
@@ -297,9 +381,11 @@ struct Sudoku
                 guesses[guessIdx]++;
             }
 
+            // If all empty squares have been filled in correctly, the algorithm terminates
             if (guessIdx >= empty.Count)
                 return true;
 
+            // guesses[guessIdx] is 9 and the algorithm needs to backtrack
             if (guesses[guessIdx] >= 9)
             {
                 guesses[guessIdx] = 0;
